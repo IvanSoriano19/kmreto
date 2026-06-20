@@ -13,8 +13,8 @@ jobs:
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             "https://kfnieyuzycptklscapgm.supabase.co/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmbmlleXV6eWNwdGtsc2NhcGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODMxMjQsImV4cCI6MjA5Mjk1OTEyNH0.T0YVy9NApgdWZjz_fAo3edax14V3ypWDh4uozHf0ofQ" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmbmlleXV6eWNwdGtsc2NhcGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODMxMjQsImV4cCI6MjA5Mjk1OTEyNH0.T0YVy9NApgdWZjz_fAo3edax14V3ypWDh4uozHf0ofQ")
           echo "HTTP status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "❌ El ping falló con status $STATUS"
