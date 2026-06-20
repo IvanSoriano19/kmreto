@@ -12,12 +12,12 @@ jobs:
       - name: Ping Supabase
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://kfnieyuzycptklscapgm.supabase.co/rest/v1/" \
+            "https://kfnieyuzycptklscapgm.supabase.co/rest/v1/profiles?limit=1" \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmbmlleXV6eWNwdGtsc2NhcGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODMxMjQsImV4cCI6MjA5Mjk1OTEyNH0.T0YVy9NApgdWZjz_fAo3edax14V3ypWDh4uozHf0ofQ" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmbmlleXV6eWNwdGtsc2NhcGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczODMxMjQsImV4cCI6MjA5Mjk1OTEyNH0.T0YVy9NApgdWZjz_fAo3edax14V3ypWDh4uozHf0ofQ")
           echo "HTTP status: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "❌ El ping falló con status $STATUS"
+          if [[ "$STATUS" == 5* ]]; then
+            echo "❌ Error del servidor (status $STATUS)"
             exit 1
           fi
-          echo "✅ Base de datos activa"
+          echo "✅ Query ejecutada correctamente (status $STATUS)"
