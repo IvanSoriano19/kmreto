@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../SupabaseClient'
 import NavBar from '../components/NavBar'
+import { ListCard } from '@/components/km/Card'
+import { ScreenHeader } from '@/components/km/ScreenHeader'
+import { StatRow } from '@/components/km/StatTile'
+import { IconRanking } from '@/components/icons'
+import { useAppUI } from '@/context/AppUIContext'
 import { iniciales } from '../utils'
+import { cn } from '@/lib/utils'
 
 export default function Ranking() {
     const navigate = useNavigate()
+    const { refreshKey } = useAppUI()
     const [miembros, setMiembros] = useState([])
     const [reto, setReto] = useState(null)
     const [kmGrupo, setKmGrupo] = useState(0)
@@ -14,7 +21,7 @@ export default function Ranking() {
 
     useEffect(() => {
         loadData()
-    }, [])
+    }, [refreshKey])
 
     async function loadData() {
         const { data: { user } } = await supabase.auth.getUser()
@@ -56,103 +63,79 @@ export default function Ranking() {
         setLoading(false)
     }
 
-    const coloresAvatar = [
-        'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-        'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
-        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    ]
-
-    const medallas = ['🥇', '🥈', '🥉']
-
     if (loading) return (
-        <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
-            <div className="text-gray-400 text-sm">Cargando...</div>
+        <div className="flex items-center justify-center h-screen bg-k-bg">
+            <div className="text-k-text3 text-sm">Cargando...</div>
         </div>
     )
 
     const mediaProgreso = miembros.length > 0
         ? Math.round(miembros.reduce((sum, m) => sum + (m.km / m.objetivo) * 100, 0) / miembros.length)
         : 0
+    const yo = miembros.find(m => m.user_id === myUserId)
+    const miPos = miembros.findIndex(m => m.user_id === myUserId)
+    const lider = miembros[0]
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 transition-colors">
-            <div className="bg-white dark:bg-gray-800 px-4 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <h1 className="text-base font-semibold text-gray-900 dark:text-white">Clasificación</h1>
-                {reto && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Meta: {reto.objetivo_km} km por persona</p>}
-            </div>
+        <div className="min-h-screen bg-k-bg pb-nav md:pb-8 transition-colors">
+            <div className="flex flex-col gap-5 px-4 pb-8 pt-8 md:mx-auto md:max-w-2xl md:px-6">
+                <ScreenHeader kicker={reto ? `Meta ${reto.objetivo_km} km por persona` : undefined} title="Clasificación" />
 
-            <div className="px-4 py-4 flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-2">
-                    {[
-                        { val: miembros.length, lbl: 'participantes' },
-                        { val: kmGrupo.toFixed(0), lbl: 'km del grupo' },
-                        { val: `${mediaProgreso}%`, lbl: 'media' },
-                    ].map(s => (
-                        <div key={s.lbl} className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm text-center">
-                            <p className="text-xl font-semibold text-gray-900 dark:text-white">{s.val}</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{s.lbl}</p>
-                        </div>
-                    ))}
-                </div>
+                <StatRow stats={[
+                    { value: miembros.length, label: 'participan' },
+                    { value: kmGrupo.toFixed(0), label: 'km del grupo' },
+                    { value: `${mediaProgreso}%`, label: 'media' },
+                ]} />
 
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="px-4 pt-4 pb-2">
-                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">Clasificación</p>
-                    </div>
+                <ListCard>
                     {miembros.map((m, i) => {
-                        const porcentaje = Math.min(Math.round((m.km / m.objetivo) * 100), 100)
+                        const pct = Math.min(Math.round((m.km / m.objetivo) * 100), 100)
                         const esYo = m.user_id === myUserId
                         return (
-                            <div key={m.user_id}
+                            <div
+                                key={m.user_id}
                                 onClick={() => navigate(`/historial/${m.user_id}`)}
-                                className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${esYo ? 'bg-green-50 dark:bg-green-900/10' : ''}`}
+                                className={cn(
+                                    'flex cursor-pointer items-center gap-3 px-4 py-3',
+                                    i > 0 && 'border-t border-k-sep',
+                                    esYo && 'bg-k-accent-soft'
+                                )}
                             >
-                                <div className="w-6 text-center flex-shrink-0">
-                                    {i < 3 ? <span className="text-lg">{medallas[i]}</span>
-                                        : <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">{i + 1}</span>}
-                                </div>
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${coloresAvatar[i % coloresAvatar.length]}`}>
+                                <div className="w-[18px] flex-none text-center text-[13px] font-semibold tabular-nums text-k-text2">{i + 1}</div>
+                                <div className={cn(
+                                    'flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full text-xs font-semibold',
+                                    esYo ? 'border border-k-accent text-k-accent-ink' : 'bg-k-fill text-k-text2'
+                                )}>
                                     {iniciales(m.nombre)}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{m.nombre}</p>
-                                        {esYo && <span className="text-xs text-green-600 dark:text-green-400 font-medium">· tú</span>}
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="truncate text-sm font-medium text-k-text">{m.nombre}</span>
+                                        {esYo && <span className="text-[11px] font-semibold text-k-accent-ink">tú</span>}
                                     </div>
-                                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full mt-1.5 overflow-hidden">
-                                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${porcentaje}%` }} />
+                                    <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-k-fill">
+                                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: esYo ? 'var(--k-accent)' : 'var(--k-text3)' }} />
                                     </div>
                                 </div>
-                                <div className="text-right flex-shrink-0">
-                                    <p className="text-sm font-semibold text-green-600 dark:text-green-400">{m.km.toFixed(1)}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">km</p>
+                                <div className="flex-none text-right">
+                                    <div className="text-sm font-semibold tabular-nums text-k-text">{m.km.toFixed(1)}</div>
+                                    <div className="text-[10px] text-k-text2">km</div>
                                 </div>
                             </div>
                         )
                     })}
-                </div>
+                </ListCard>
 
-                {miembros.length > 1 && (() => {
-                    const yo = miembros.find(m => m.user_id === myUserId)
-                    const miPos = miembros.findIndex(m => m.user_id === myUserId)
-                    const lider = miembros[0]
-                    if (!yo) return null
-                    if (miPos === 0) return (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl p-4 text-center">
-                            <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">🏆 ¡Vas primero! Sigue así</p>
-                        </div>
-                    )
-                    const diff = (lider.km - yo.km).toFixed(1)
-                    return (
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-4 text-center">
-                            <p className="text-xs text-green-600 dark:text-green-400">vas {diff} km por detrás de {lider.nombre}</p>
-                            <p className="text-sm font-medium text-green-700 dark:text-green-400 mt-1">¡Ponte las pilas! 💪</p>
-                        </div>
-                    )
-                })()}
+                {yo && miembros.length > 1 && (
+                    <div className="flex items-start gap-2.5 rounded-lg bg-k-accent-soft p-3.5">
+                        <IconRanking className="mt-0.5 h-[18px] w-[18px] flex-none text-k-accent-ink" strokeWidth={1.7} />
+                        <p className="text-[13px] leading-relaxed text-k-accent-ink">
+                            {miPos === 0
+                                ? <>¡Vas primero! Sigue así.</>
+                                : <>Estás a <span className="font-semibold">{(lider.km - yo.km).toFixed(1)} km</span> de {lider.nombre}.</>}
+                        </p>
+                    </div>
+                )}
             </div>
             <NavBar />
         </div>

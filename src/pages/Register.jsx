@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../SupabaseClient'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { IconTrail } from '@/components/icons'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -18,66 +21,47 @@ export default function Register() {
     }
     setLoading(true)
     setError('')
-  
+
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) { setError(error.message); setLoading(false); return }
-  
-    const { error: perfilError } = await supabase.from('profiles').insert({
+
+    await supabase.from('profiles').insert({
       id: data.user.id,
       nombre: nombre.trim(),
     })
-  
+
     setLoading(false)
     navigate('/onboarding')
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center px-6 transition-colors">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🏃</div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Crear cuenta</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Únete al reto familiar</p>
+    <div className="flex min-h-screen flex-col justify-center bg-k-bg px-6 transition-colors">
+      <div className="mx-auto w-full max-w-sm">
+        <div className="mb-8 flex flex-col gap-2.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-k-accent">
+            <IconTrail className="h-[26px] w-[26px] text-white" strokeWidth={1.8} />
+          </div>
+          <h1 className="mt-1.5 text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] text-k-text">Crear cuenta</h1>
+          <p className="text-[15px] leading-relaxed text-k-text2">Únete al reto familiar.</p>
         </div>
 
-        <form onSubmit={handleRegister} className="flex flex-col gap-3">
-          <input
-            type="text"
-            placeholder="Tu nombre"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Contraseña (mín. 6 caracteres)"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-            required
-          />
-          {error && <p className="text-red-500 text-xs">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-          >
-            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-          </button>
+        <form onSubmit={handleRegister} className="flex flex-col gap-2.5">
+          <div className="flex flex-col overflow-hidden rounded-lg border border-k-sep bg-k-surface">
+            <Input type="text" placeholder="Tu nombre" value={nombre} onChange={e => setNombre(e.target.value)} required />
+            <div className="h-px bg-k-sep" />
+            <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <div className="h-px bg-k-sep" />
+            <Input type="password" placeholder="Contraseña (mín. 6 caracteres)" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          {error && <p className="text-[13px] text-k-danger">{error}</p>}
+          <Button type="submit" size="lg" disabled={loading} className="mt-1 justify-start">
+            {loading ? 'Creando cuenta…' : 'Crear cuenta'}
+          </Button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+        <p className="mt-6 text-[13px] text-k-text2">
           ¿Ya tienes cuenta?{' '}
-          <button onClick={() => navigate('/login')} className="text-green-600 font-medium">
+          <button onClick={() => navigate('/login')} className="font-medium text-k-accent-ink">
             Iniciar sesión
           </button>
         </p>

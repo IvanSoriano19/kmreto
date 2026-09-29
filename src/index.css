@@ -2,18 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Tokens del rediseño "Nativa" (Opción A) — listas agrupadas al estilo iOS,
+ * acento verde de sistema, superficies planas. Ver /design/KmReto Rediseño.
+ */
+:root {
+  --k-bg: #F2F2F7;
+  --k-surface: #FFFFFF;
+  --k-radius: 18px;
+  --k-sep: rgba(60, 60, 67, .16);
+  --k-text: #000000;
+  --k-text2: rgba(60, 60, 67, .78);
+  --k-text3: rgba(60, 60, 67, .56);
+  --k-fill: rgba(120, 120, 128, .12);
+  --k-accent: #34C759;
+  --k-accent-ink: #1C8A3E;
+  --k-accent-soft: rgba(52, 199, 89, .14);
+  --k-accent-foreground: #ffffff;
+  --k-nav: rgba(249, 249, 249, .78);
+  --k-danger: #FF453A;
+}
+
+:root.dark {
+  --k-bg: #000000;
+  --k-surface: #1C1C1E;
+  --k-sep: rgba(84, 84, 88, .55);
+  --k-text: #ffffff;
+  --k-text2: rgba(235, 235, 245, .82);
+  --k-text3: rgba(235, 235, 245, .62);
+  --k-fill: rgba(120, 120, 128, .24);
+  --k-accent: #30D158;
+  --k-accent-ink: #30D158;
+  --k-accent-soft: rgba(48, 209, 88, .18);
+  --k-accent-foreground: #04150a;
+  --k-nav: rgba(28, 28, 30, .76);
+  --k-danger: #FF453A;
+}
+
 /* Fondo base: evita áreas negras fuera del contenedor en cualquier tamaño */
 html {
-  background-color: #e5e7eb; /* gray-200 */
+  background-color: var(--k-bg);
   height: 100%;
-}
-html.dark {
-  background-color: #030712; /* gray-950 */
 }
 
 body {
   height: 100%;
   min-height: 100vh;
+  background-color: var(--k-bg);
+  color: var(--k-text);
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
 }
@@ -24,4 +60,27 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Evita el zoom automático en inputs al hacer foco en iOS Safari */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Padding inferior que incluye la barra de pestañas fija + safe area del iPhone (home indicator) */
+/* Solo se aplica en móvil; en escritorio no hay barra inferior */
+@media (max-width: 767px) {
+  .pb-nav {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
 }

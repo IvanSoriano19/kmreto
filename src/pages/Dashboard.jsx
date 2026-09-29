@@ -2,20 +2,33 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../SupabaseClient'
 import NavBar from '../components/NavBar'
-import { DEPORTES, iniciales, tiempoRelativo } from '../utils'
+import { Card, ListCard } from '@/components/km/Card'
+import { ScreenHeader } from '@/components/km/ScreenHeader'
+import { RingProgress } from '@/components/km/RingProgress'
+import { Segmented } from '@/components/km/Segmented'
+import { BarChart } from '@/components/km/BarChart'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { IconDeporte, IconTrail } from '@/components/icons'
+import { useAppUI } from '@/context/AppUIContext'
+import { iniciales, tiempoRelativo, semanaActual, mesesRecientes } from '../utils'
 
 export default function Dashboard() {
     const navigate = useNavigate()
+    const { refreshKey } = useAppUI()
     const [profile, setProfile] = useState(null)
     const [reto, setReto] = useState(null)
     const [miKm, setMiKm] = useState(0)
     const [kmGrupo, setKmGrupo] = useState(0)
+    const [nPersonas, setNPersonas] = useState(0)
     const [actividades, setActividades] = useState([])
+    const [misActs, setMisActs] = useState([])
+    const [rango, setRango] = useState('semana')
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         loadData()
-    }, [])
+    }, [refreshKey])
 
     async function loadData() {
         const { data: { user } } = await supabase.auth.getUser()
@@ -35,122 +48,144 @@ export default function Dashboard() {
         const retoData = miembro.retos
         setReto({ ...retoData, objetivo_km_personal: miembro.objetivo_km || retoData.objetivo_km })
 
-        const [{ data: misActs }, { data: todasActs }, { data: recientes }] = await Promise.all([
-            supabase.from('actividades').select('distancia_km').eq('user_id', user.id).eq('reto_id', retoData.id),
+        const [{ data: misActsData }, { data: todasActs }, { data: miembros }, { data: recientes }] = await Promise.all([
+            supabase.from('actividades').select('distancia_km, fecha').eq('user_id', user.id).eq('reto_id', retoData.id),
             supabase.from('actividades').select('distancia_km').eq('reto_id', retoData.id),
-            supabase.from('actividades').select('*, profiles(nombre)').eq('reto_id', retoData.id).order('created_at', { ascending: false }).limit(5),
+            supabase.from('reto_miembros').select('user_id').eq('reto_id', retoData.id),
+            supabase.from('actividades').select('*, profiles(nombre)').eq('reto_id', retoData.id).order('created_at', { ascending: false }).limit(4),
         ])
 
-        setMiKm(misActs?.reduce((sum, a) => sum + Number(a.distancia_km), 0) || 0)
+        setMisActs(misActsData || [])
+        setMiKm(misActsData?.reduce((sum, a) => sum + Number(a.distancia_km), 0) || 0)
         setKmGrupo(todasActs?.reduce((sum, a) => sum + Number(a.distancia_km), 0) || 0)
+        setNPersonas(miembros?.length || 1)
         setActividades(recientes || [])
         setLoading(false)
     }
 
     if (loading) return (
-        <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
-            <div className="text-gray-400 text-sm">Cargando...</div>
+        <div className="flex items-center justify-center h-screen bg-k-bg">
+            <div className="text-k-text3 text-sm">Cargando...</div>
         </div>
     )
 
     if (!reto) return (
-        <div className="flex flex-col items-center justify-center h-screen px-6 gap-4 bg-white dark:bg-gray-900">
-            <div className="text-5xl">🏆</div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm text-center">Aún no perteneces a ningún reto</p>
-            <button onClick={() => navigate('/onboarding')} className="bg-green-600 text-white rounded-xl px-6 py-3 text-sm font-medium">
-                Unirse o crear un reto
-            </button>
+        <div className="flex min-h-screen flex-col justify-center gap-5 bg-k-bg px-6 py-14">
+            <IconTrail className="h-10 w-10 text-k-text3" strokeWidth={1.4} />
+            <div className="flex flex-col gap-2">
+                <h1 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.025em] text-k-text">Todavía no tienes un reto</h1>
+                <p className="text-[15px] leading-relaxed text-k-text2">Crea uno para tu familia o entra con el código que te hayan pasado.</p>
+            </div>
+            <div className="mt-1 flex flex-col gap-2.5">
+                <Button size="lg" className="justify-start" onClick={() => navigate('/onboarding', { state: { vista: 'crear' } })}>
+                    Crear un reto
+                </Button>
+                <Button size="lg" variant="outline" className="justify-start" onClick={() => navigate('/onboarding', { state: { vista: 'unirse' } })}>
+                    Unirse con un código
+                </Button>
+            </div>
         </div>
     )
 
     const objetivo = reto.objetivo_km_personal
-    const porcentaje = Math.min(Math.round((miKm / objetivo) * 100), 100)
+    const pct = Math.min(Math.round((miKm / objetivo) * 100), 100)
     const kmFaltan = Math.max(objetivo - miKm, 0)
+    const veces = (kmGrupo / 1000).toFixed(1).replace('.', ',')
+
+    const { labels: semLabels, vals: semVals } = semanaActual(misActs)
+    const { labels: mesLabels, vals: mesVals } = mesesRecientes(misActs)
+    const esSemana = rango === 'semana'
+    const vals = esSemana ? semVals : mesVals
+    const rangoTotal = vals.reduce((a, b) => a + b, 0)
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 transition-colors">
-            <div className="bg-white dark:bg-gray-800 px-4 pt-6 pb-4 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
-                <div>
-                    <h1 className="text-base font-semibold text-gray-900 dark:text-white">{reto.nombre}</h1>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">{reto.year}</p>
-                </div>
-                <div
-                    onClick={() => navigate('/perfil')}
-                    className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-sm font-medium text-green-700 dark:text-green-400 cursor-pointer"
-                >
-                    {iniciales(profile?.nombre)}
-                </div>
-            </div>
+        <div className="min-h-screen bg-k-bg pb-nav md:pb-8 transition-colors">
+            <div className="flex flex-col gap-6 px-4 pb-8 pt-8 md:mx-auto md:max-w-2xl md:px-6">
+                <ScreenHeader
+                    kicker={`${reto.nombre} · ${reto.year}`}
+                    title="Resumen"
+                    action={
+                        <button onClick={() => navigate('/perfil')} className="h-[38px] w-[38px] flex-none rounded-full">
+                            <Avatar className="h-full w-full border border-k-sep bg-k-accent-soft">
+                                <AvatarFallback className="bg-transparent text-[13px] font-semibold text-k-accent-ink">
+                                    {iniciales(profile?.nombre)}
+                                </AvatarFallback>
+                            </Avatar>
+                        </button>
+                    }
+                />
 
-            <div className="px-4 py-4 flex flex-col gap-4">
                 {/* Tu progreso */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                    <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Tu progreso</p>
-                    <div className="flex items-end gap-1 mb-1">
-                        <span className="text-3xl font-semibold text-gray-900 dark:text-white">{miKm.toFixed(1)}</span>
-                        <span className="text-sm text-gray-400 dark:text-gray-500 mb-1">km</span>
+                <Card className="flex items-center gap-5">
+                    <RingProgress pct={pct} />
+                    <div className="flex min-w-0 flex-col gap-2">
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-[36px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-k-text">{miKm.toFixed(1)}</span>
+                            <span className="text-[15px] text-k-text2">km</span>
+                        </div>
+                        <p className="text-[13px] leading-snug text-k-text2">
+                            {kmFaltan > 0
+                                ? <>Te quedan <span className="font-medium text-k-text">{kmFaltan.toFixed(1)} km</span> para los {objetivo} del año.</>
+                                : '¡Has completado tu reto! 🎉'}
+                        </p>
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                        {kmFaltan > 0 ? `Te faltan ${kmFaltan.toFixed(1)} km para tu meta` : '¡Has completado tu reto! 🎉'}
-                    </p>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${porcentaje}%` }} />
+                </Card>
+
+                {/* Tu actividad */}
+                <Card className="flex flex-col gap-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[13px] font-semibold text-k-text2">Tu actividad</p>
+                        <Segmented
+                            value={rango}
+                            onChange={setRango}
+                            options={[{ value: 'semana', label: 'Semana' }, { value: 'mes', label: 'Mes' }]}
+                        />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-300 dark:text-gray-600 mt-1">
-                        <span>0 km</span>
-                        <span className="text-green-500 font-medium">{porcentaje}%</span>
-                        <span>{objetivo} km</span>
+                    <BarChart values={vals} labels={esSemana ? semLabels : mesLabels} />
+                    <div className="h-px bg-k-sep" />
+                    <div className="flex items-baseline justify-between">
+                        <div className="text-[13px] text-k-text2">{esSemana ? 'Esta semana' : 'Últimos 6 meses'}</div>
+                        <div className="text-[15px] font-semibold tabular-nums text-k-text">{rangoTotal.toFixed(1)} km</div>
                     </div>
-                </div>
+                </Card>
 
                 {/* El grupo */}
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-4">
-                    <p className="text-xs text-green-600 dark:text-green-400 mb-1">Entre todos llevamos</p>
-                    <p className="text-3xl font-semibold text-green-700 dark:text-green-400">{kmGrupo.toFixed(1)} km</p>
-                    <div className="mt-2 bg-white dark:bg-gray-800 rounded-lg px-3 py-1.5 inline-block">
-                        <p className="text-xs text-green-600 dark:text-green-400">= cruzar España {(kmGrupo / 1000).toFixed(1)} veces</p>
+                <Card className="flex flex-col gap-3 bg-k-accent-soft shadow-none">
+                    <p className="text-[13px] font-semibold text-k-accent-ink">El grupo</p>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-[30px] font-semibold tracking-[-0.025em] tabular-nums text-k-accent-ink">{kmGrupo.toFixed(1)}</span>
+                        <span className="text-sm text-k-text2">km entre {nPersonas} {nPersonas === 1 ? 'persona' : 'personas'}</span>
                     </div>
-                </div>
+                    <p className="text-[13px] leading-snug text-k-text2">
+                        Equivale a cruzar España <span className="font-medium text-k-text">{veces} veces</span> de norte a sur.
+                    </p>
+                </Card>
 
-                {/* Actividad reciente */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                    <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Actividad reciente</p>
-                    {actividades.length === 0 ? (
-                        <p className="text-sm text-gray-300 dark:text-gray-600 text-center py-4">Aún no hay actividades</p>
-                    ) : (
-                        <div className="flex flex-col gap-3">
-                            {actividades.map(act => (
-                                <div key={act.id} className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5">
-                                        {iniciales(act.profiles?.nombre)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-gray-800 dark:text-gray-200">
-                                            <span className="font-medium">{act.profiles?.nombre}</span>
-                                            {' '}añadió{' '}
-                                            <span className="font-medium">{act.distancia_km} km</span>
-                                            {' '}{DEPORTES[act.deporte] || '🏅'} {act.deporte}
-                                        </p>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500">{tiempoRelativo(act.created_at)}</p>
-                                        {act.foto_url && (
-                                            <img src={act.foto_url} alt="actividad" className="mt-2 w-full h-32 object-cover rounded-xl" />
-                                        )}
-                                    </div>
+                {/* Últimos movimientos */}
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[13px] font-semibold text-k-text2">Últimos movimientos</p>
+                        <Button variant="link" size="sm" onClick={() => navigate('/ranking')}>Ver todo</Button>
+                    </div>
+                    <ListCard>
+                        {actividades.length === 0 ? (
+                            <p className="px-4 py-6 text-center text-sm text-k-text3">Aún no hay actividades</p>
+                        ) : actividades.map((act, i) => (
+                            <div key={act.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-k-sep' : ''}`}>
+                                <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-k-fill">
+                                    <IconDeporte deporte={act.deporte} className="h-[18px] w-[18px] text-k-text2" strokeWidth={1.7} />
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-sm leading-tight text-k-text">
+                                        <span className="font-medium">{act.profiles?.nombre}</span> · {act.deporte}
+                                    </div>
+                                    <div className="text-xs text-k-text2">{tiempoRelativo(act.created_at)}</div>
+                                </div>
+                                <div className="flex-none text-sm font-semibold tabular-nums text-k-text">{Number(act.distancia_km).toFixed(1)} km</div>
+                            </div>
+                        ))}
+                    </ListCard>
                 </div>
-            </div>
-
-            {/* Botón añadir — fijo sobre la NavBar, perfectamente alineado con el contenedor */}
-            <div className="fixed bottom-2 left-1/2 -translate-x-1/2 w-full max-w-md px-4 pb-[4.5rem] pt-3 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none">
-                <button
-                    onClick={() => navigate('/nueva-actividad')}
-                    className="w-full bg-green-600 text-white rounded-2xl py-3.5 text-sm font-medium shadow-lg hover:bg-green-700 active:bg-green-800 transition-colors pointer-events-auto"
-                >
-                    + Añadir actividad
-                </button>
             </div>
 
             <NavBar />

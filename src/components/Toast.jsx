@@ -1,14 +1,16 @@
-import { useEffect } from 'react'
+import { useAppUI } from '@/context/AppUIContext'
 
-export default function Toast({ message, onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 2500)
-    return () => clearTimeout(t)
-  }, [onClose])
+// Pastilla oscura centrada, igual que en el boceto (fondo #1C1C1E al 92%,
+// texto blanco, esquinas totalmente redondeadas).
+export default function Toast() {
+  const { toast } = useAppUI()
+  if (!toast) return null
 
   return (
-    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2.5 rounded-2xl text-sm font-medium shadow-xl pointer-events-none">
-      {message}
+    <div className="pointer-events-none fixed inset-x-0 bottom-28 z-[90] flex justify-center px-4">
+      <div className="animate-toast-in rounded-full bg-[rgba(28,28,30,.92)] px-4 py-2.5 text-[13px] font-medium text-white shadow-lg">
+        {toast}
+      </div>
     </div>
   )
 }

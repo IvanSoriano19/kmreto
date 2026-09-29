@@ -1,29 +1,31 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { supabase } from '../SupabaseClient'
 import NavBar from '../components/NavBar'
-import Toast from '../components/Toast'
+import { ListCard } from '@/components/km/Card'
+import { ScreenHeader } from '@/components/km/ScreenHeader'
+import { StatRow } from '@/components/km/StatTile'
+import { Segmented } from '@/components/km/Segmented'
+import { Button } from '@/components/ui/button'
 import { useTema } from '../ThemeContext'
-import { DEPORTES, iniciales } from '../utils'
+import { useAppUI } from '@/context/AppUIContext'
 
 export default function Perfil() {
     const navigate = useNavigate()
+    const { showToast, refreshKey } = useAppUI()
     const [perfil, setPerfil] = useState(null)
     const [reto, setReto] = useState(null)
     const [miembroId, setMiembroId] = useState(null)
     const [stats, setStats] = useState({ km: 0, actividades: 0, deporteFav: null })
     const [objetivoEdit, setObjetivoEdit] = useState(null)
-    const [editando, setEditando] = useState(false)
     const [nombreEdit, setNombreEdit] = useState('')
     const [loading, setLoading] = useState(true)
-    const [toast, setToast] = useState(null)
     const { tema, setTema } = useTema()
-
-    const showToast = useCallback((msg) => setToast(msg), [])
 
     useEffect(() => {
         loadData()
-    }, [])
+    }, [refreshKey])
 
     async function loadData() {
         const { data: { user } } = await supabase.auth.getUser()
@@ -58,10 +60,10 @@ export default function Perfil() {
     }
 
     async function handleGuardarNombre() {
+        if (!nombreEdit.trim() || nombreEdit === perfil?.nombre) { setNombreEdit(perfil?.nombre || ''); return }
         const { data: { user } } = await supabase.auth.getUser()
-        await supabase.from('profiles').update({ nombre: nombreEdit }).eq('id', user.id)
-        setPerfil(p => ({ ...p, nombre: nombreEdit }))
-        setEditando(false)
+        await supabase.from('profiles').update({ nombre: nombreEdit.trim() }).eq('id', user.id)
+        setPerfil(p => ({ ...p, nombre: nombreEdit.trim() }))
         showToast('Nombre actualizado')
     }
 
@@ -72,7 +74,13 @@ export default function Perfil() {
 
     async function handleCopiarCodigo() {
         await navigator.clipboard.writeText(reto.codigo_invitacion)
-        showToast('¡Código copiado!')
+        showToast('Código copiado')
+    }
+
+    async function handleSalirDelReto() {
+        if (!window.confirm('¿Seguro que quieres salir de este reto?')) return
+        await supabase.from('reto_miembros').delete().eq('id', miembroId)
+        navigate('/onboarding')
     }
 
     async function handleLogout() {
@@ -81,127 +89,83 @@ export default function Perfil() {
     }
 
     if (loading) return (
-        <div className="flex items-center justify-center h-screen bg-white dark:bg-gray-900">
-            <div className="text-gray-400 text-sm">Cargando...</div>
+        <div className="flex items-center justify-center h-screen bg-k-bg">
+            <div className="text-k-text3 text-sm">Cargando...</div>
         </div>
     )
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 transition-colors">
-            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+        <div className="min-h-screen bg-k-bg pb-nav md:pb-8 transition-colors">
+            <div className="flex flex-col gap-5 px-4 pb-8 pt-8 md:mx-auto md:max-w-2xl md:px-6">
+                <ScreenHeader
+                    kicker={reto ? `${reto.nombre} · desde ${reto.year}` : undefined}
+                    title={perfil?.nombre || 'Perfil'}
+                />
 
-            <div className="bg-white dark:bg-gray-800 px-4 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <h1 className="text-base font-semibold text-gray-900 dark:text-white">Mi perfil</h1>
-            </div>
+                <StatRow stats={[
+                    { value: stats.km.toFixed(1), label: 'km totales' },
+                    { value: stats.actividades, label: 'actividades' },
+                    { value: stats.deporteFav || '—', label: 'más frecuente' },
+                ]} />
 
-            <div className="px-4 py-4 flex flex-col gap-4">
-
-                {/* Avatar y nombre */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-2xl font-semibold text-green-700 dark:text-green-400">
-                        {iniciales(perfil?.nombre)}
+                <ListCard>
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                        <span className="text-[15px] text-k-text">Tu nombre</span>
+                        <input
+                            value={nombreEdit}
+                            onChange={e => setNombreEdit(e.target.value)}
+                            onBlur={handleGuardarNombre}
+                            className="w-36 rounded-lg bg-k-fill px-2.5 py-1.5 text-right text-sm font-medium text-k-text outline-none"
+                        />
                     </div>
-                    {editando ? (
-                        <div className="flex gap-2 w-full">
-                            <input value={nombreEdit} onChange={e => setNombreEdit(e.target.value)}
-                                className="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-green-500"
-                            />
-                            <button onClick={handleGuardarNombre} className="bg-green-600 text-white px-3 py-2 rounded-xl text-xs font-medium">
-                                Guardar
-                            </button>
-                            <button onClick={() => setEditando(false)} className="text-gray-400 px-2 text-xs">
-                                Cancelar
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{perfil?.nombre}</p>
-                            <button onClick={() => setEditando(true)} className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                Editar
-                            </button>
+
+                    {reto && (
+                        <div className="flex items-center justify-between gap-3 border-t border-k-sep px-4 py-3">
+                            <span className="text-[15px] text-k-text">Mi meta anual</span>
+                            <div className="flex items-center gap-1.5">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={objetivoEdit || ''}
+                                    onChange={e => setObjetivoEdit(Number(e.target.value))}
+                                    onBlur={handleGuardarObjetivo}
+                                    className="w-[66px] rounded-lg bg-k-fill px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-k-text outline-none"
+                                />
+                                <span className="text-[13px] text-k-text2">km</span>
+                            </div>
                         </div>
                     )}
-                    {reto && <p className="text-xs text-gray-400 dark:text-gray-500">{reto.nombre} · desde {reto.year}</p>}
-                </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2">
-                    {[
-                        { val: stats.km.toFixed(1), lbl: 'km totales' },
-                        { val: stats.actividades, lbl: 'actividades' },
-                        { val: stats.deporteFav ? DEPORTES[stats.deporteFav] : '—', lbl: 'deporte top' },
-                    ].map(s => (
-                        <div key={s.lbl} className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm text-center">
-                            <p className="text-xl font-semibold text-gray-900 dark:text-white">{s.val}</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{s.lbl}</p>
+                    {reto?.codigo_invitacion && (
+                        <div className="flex items-center justify-between gap-3 border-t border-k-sep px-4 py-3">
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                                <span className="text-[15px] text-k-text">Código de invitación</span>
+                                <span className="text-[19px] font-semibold tracking-[.18em] tabular-nums text-k-text">{reto.codigo_invitacion}</span>
+                            </div>
+                            <Button size="sm" variant="outline" className="text-k-accent-ink" onClick={handleCopiarCodigo}>Copiar</Button>
                         </div>
-                    ))}
-                </div>
+                    )}
 
-                {/* Meta personal */}
-                {reto && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Mi meta personal</p>
-                        <div className="flex items-center gap-3">
-                            <input type="number" value={objetivoEdit || ''} onChange={e => setObjetivoEdit(Number(e.target.value))}
-                                className="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl px-3 py-2 text-sm outline-none focus:border-green-500"
-                                min="1"
-                            />
-                            <span className="text-sm text-gray-400 dark:text-gray-500">km</span>
-                            <button onClick={handleGuardarObjetivo} className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-medium">
-                                Guardar
-                            </button>
+                    <div className="flex items-center justify-between gap-3 border-t border-k-sep px-4 py-3">
+                        <span className="text-[15px] text-k-text">Apariencia</span>
+                        <Segmented
+                            value={tema}
+                            onChange={setTema}
+                            options={[{ value: 'claro', label: 'Claro' }, { value: 'oscuro', label: 'Oscuro' }]}
+                        />
+                    </div>
+
+                    {reto && (
+                        <div onClick={handleSalirDelReto} className="flex cursor-pointer items-center justify-between gap-3 border-t border-k-sep px-4 py-3">
+                            <span className="text-[15px] text-k-text">Salir del reto</span>
+                            <ChevronRight className="h-4 w-4 text-k-text3" strokeWidth={2} />
                         </div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">El reto tiene una meta de {reto.objetivo_km} km por defecto</p>
-                    </div>
-                )}
+                    )}
+                </ListCard>
 
-                {/* Código invitación */}
-                {reto?.codigo_invitacion && (
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-4">
-                        <p className="text-xs text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">Código de invitación</p>
-                        <div className="flex items-center gap-3">
-                            <p className="text-2xl font-bold text-green-700 dark:text-green-400 tracking-widest flex-1">
-                                {reto.codigo_invitacion}
-                            </p>
-                            <button onClick={handleCopiarCodigo} className="bg-green-600 text-white px-3 py-2 rounded-xl text-xs font-medium">
-                                Copiar
-                            </button>
-                        </div>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-2">Comparte este código con tu familia para que se unan</p>
-                    </div>
-                )}
-
-                {/* Apariencia */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                    <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Apariencia</p>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setTema('claro')}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                                tema === 'claro'
-                                    ? 'bg-green-50 border-green-400 text-green-700'
-                                    : 'bg-gray-50 dark:bg-gray-700 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                            }`}
-                        >
-                            ☀️ Claro
-                        </button>
-                        <button onClick={() => setTema('oscuro')}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                                tema === 'oscuro'
-                                    ? 'bg-gray-700 border-gray-500 text-white'
-                                    : 'bg-gray-50 dark:bg-gray-700 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                            }`}
-                        >
-                            🌙 Oscuro
-                        </button>
-                    </div>
-                </div>
-
-                {/* Cerrar sesión */}
-                <button onClick={handleLogout} className="text-center text-sm text-red-400 py-2">
+                <button onClick={handleLogout} className="py-2 text-center text-sm text-k-danger">
                     Cerrar sesión
                 </button>
-
             </div>
             <NavBar />
         </div>

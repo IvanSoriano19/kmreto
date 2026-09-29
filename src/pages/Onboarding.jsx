@@ -1,6 +1,20 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../SupabaseClient'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { ListRowLink } from '@/components/km/ListRow'
+import { IconCrear, IconUnirse } from '@/components/icons'
+
+function BackButton({ onClick }) {
+  return (
+    <button onClick={onClick} className="mb-1 flex items-center gap-0.5 self-start text-[15px] text-k-accent-ink">
+      <ChevronLeft className="h-4 w-4" strokeWidth={2.2} />
+      Atrás
+    </button>
+  )
+}
 
 function CrearReto({ onBack }) {
     const navigate = useNavigate()
@@ -69,46 +83,37 @@ function CrearReto({ onBack }) {
     }
 
     return (
-        <div className="w-full max-w-sm">
-            <button onClick={onBack} className="text-gray-400 dark:text-gray-500 text-sm mb-6 flex items-center gap-1">
-                ‹ Volver
-            </button>
-            <div className="text-center mb-8">
-                <div className="text-4xl mb-3">🏆</div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Crear un reto</h2>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Configura el reto y comparte el código con tu familia</p>
+        <div className="flex w-full max-w-sm flex-col gap-5">
+            <BackButton onClick={onBack} />
+            <div className="flex flex-col gap-2">
+                <h2 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.03em] text-k-text">Crear el reto</h2>
+                <p className="text-[15px] leading-relaxed text-k-text2">Puedes cambiar el nombre y la meta más adelante.</p>
             </div>
-            <form onSubmit={handleCrear} className="flex flex-col gap-3">
-                <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nombre del reto</label>
-                    <input
-                        type="text"
-                        placeholder="Ej: Reto Familia García 2026"
+            <form onSubmit={handleCrear} className="flex flex-col gap-2.5">
+                <div className="flex flex-col overflow-hidden rounded-lg border border-k-sep bg-k-surface">
+                    <Input
+                        placeholder="Ej: Familia García 2026"
                         value={nombre}
                         onChange={e => setNombre(e.target.value)}
-                        className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
                         required
                     />
+                    <div className="h-px bg-k-sep" />
+                    <div className="flex items-center px-4">
+                        <input
+                            type="number"
+                            value={objetivoKm}
+                            onChange={e => setObjetivoKm(Number(e.target.value))}
+                            min="1"
+                            required
+                            className="h-[50px] flex-1 bg-transparent text-[15px] text-k-text outline-none"
+                        />
+                        <span className="text-[13px] text-k-text2">km por persona</span>
+                    </div>
                 </div>
-                <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Objetivo en km (por persona)</label>
-                    <input
-                        type="number"
-                        value={objetivoKm}
-                        onChange={e => setObjetivoKm(Number(e.target.value))}
-                        className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                        min="1"
-                        required
-                    />
-                </div>
-                {error && <p className="text-red-500 text-xs">{error}</p>}
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 disabled:opacity-50 mt-2"
-                >
-                    {loading ? 'Creando...' : 'Crear reto'}
-                </button>
+                {error && <p className="text-[13px] text-k-danger">{error}</p>}
+                <Button type="submit" size="lg" disabled={loading} className="mt-1 justify-start">
+                    {loading ? 'Creando…' : 'Crear y entrar'}
+                </Button>
             </form>
         </div>
     )
@@ -119,6 +124,19 @@ function UnirseReto({ onBack }) {
     const [codigo, setCodigo] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const refs = useRef([])
+
+    function setDigit(i, val) {
+        const chars = codigo.padEnd(6, ' ').split('')
+        chars[i] = val.slice(-1).toUpperCase()
+        const next = chars.join('').replace(/\s+$/, '')
+        setCodigo(next)
+        if (val && i < 5) refs.current[i + 1]?.focus()
+    }
+
+    function handleKeyDown(i, e) {
+        if (e.key === 'Backspace' && !codigo[i] && i > 0) refs.current[i - 1]?.focus()
+    }
 
     async function handleUnirse(e) {
         e.preventDefault()
@@ -162,85 +180,69 @@ function UnirseReto({ onBack }) {
     }
 
     return (
-        <div className="w-full max-w-sm">
-            <button onClick={onBack} className="text-gray-400 dark:text-gray-500 text-sm mb-6 flex items-center gap-1">
-                ‹ Volver
-            </button>
-            <div className="text-center mb-8">
-                <div className="text-4xl mb-3">🔗</div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Unirse con código</h2>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Pide el código a quien creó el reto</p>
+        <div className="flex w-full max-w-sm flex-col gap-5">
+            <BackButton onClick={onBack} />
+            <div className="flex flex-col gap-2">
+                <h2 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.03em] text-k-text">Tu código</h2>
+                <p className="text-[15px] leading-relaxed text-k-text2">Pídeselo a quien creó el reto.</p>
             </div>
-            <form onSubmit={handleUnirse} className="flex flex-col gap-3">
-                <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Código de invitación</label>
-                    <input
-                        type="text"
-                        placeholder="Ej: ABC123"
-                        value={codigo}
-                        onChange={e => setCodigo(e.target.value)}
-                        className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500 uppercase tracking-widest text-center text-lg font-semibold"
-                        maxLength={6}
-                        required
-                    />
+            <form onSubmit={handleUnirse} className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <input
+                            key={i}
+                            ref={el => (refs.current[i] = el)}
+                            value={codigo[i] || ''}
+                            onChange={e => setDigit(i, e.target.value)}
+                            onKeyDown={e => handleKeyDown(i, e)}
+                            maxLength={1}
+                            className="h-[52px] flex-1 rounded-xl border border-k-sep bg-k-surface text-center text-[22px] font-semibold tabular-nums text-k-text outline-none focus:border-k-accent"
+                        />
+                    ))}
                 </div>
-                {error && <p className="text-red-500 text-xs">{error}</p>}
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-green-600 text-white rounded-xl py-3 text-sm font-medium hover:bg-green-700 disabled:opacity-50 mt-2"
-                >
-                    {loading ? 'Buscando...' : 'Unirse al reto'}
-                </button>
+                {error && <p className="text-[13px] text-k-danger">{error}</p>}
+                <Button type="submit" size="lg" disabled={loading || codigo.length < 6} className="justify-start">
+                    {loading ? 'Buscando…' : 'Unirme'}
+                </Button>
             </form>
         </div>
     )
 }
 
 export default function Onboarding() {
-    const [vista, setVista] = useState('menu')
+    const location = useLocation()
+    const [vista, setVista] = useState(location.state?.vista || 'menu')
+    const [nombre, setNombre] = useState('')
+
+    useEffect(() => {
+        async function loadNombre() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            const { data: prof } = await supabase.from('profiles').select('nombre').eq('id', user.id).single()
+            setNombre(prof?.nombre?.split(' ')[0] || '')
+        }
+        loadNombre()
+    }, [])
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center px-6 transition-colors">
+        <div className="flex min-h-screen flex-col justify-center bg-k-bg px-6 transition-colors">
             {vista === 'menu' && (
-                <div className="w-full max-w-sm">
-                    <div className="text-center mb-10">
-                        <div className="text-5xl mb-3">👋</div>
-                        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">¡Bienvenido!</h2>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">¿Qué quieres hacer?</p>
+                <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-[28px] font-semibold leading-[1.12] tracking-[-0.03em] text-k-text">
+                            {nombre ? `Hola, ${nombre}` : '¡Bienvenido!'}
+                        </h2>
+                        <p className="text-[15px] leading-relaxed text-k-text2">Un reto es el grupo con el que sumas kilómetros durante el año.</p>
                     </div>
-                    <div className="flex flex-col gap-3">
-                        <button
-                            onClick={() => setVista('crear')}
-                            className="flex items-center gap-4 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-left hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        >
-                            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🏆</div>
-                            <div>
-                                <div className="font-medium text-gray-900 dark:text-white text-sm">Crear un reto</div>
-                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Crea el reto y comparte el código con tu familia</div>
-                            </div>
-                            <span className="text-gray-300 ml-auto text-lg">›</span>
-                        </button>
-                        <button
-                            onClick={() => setVista('unirse')}
-                            className="flex items-center gap-4 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-left hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                        >
-                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🔗</div>
-                            <div>
-                                <div className="font-medium text-gray-900 dark:text-white text-sm">Unirse con código</div>
-                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Alguien ya creó el reto y te compartió un código</div>
-                            </div>
-                            <span className="text-gray-300 ml-auto text-lg">›</span>
-                        </button>
-                    </div>
-                    <div className="mt-6 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex gap-2">
-                        <span className="text-base">💡</span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Puedes pertenecer a varios retos a la vez y cambiar entre ellos fácilmente.</p>
+                    <div className="flex flex-col overflow-hidden rounded-lg border border-k-sep bg-k-surface">
+                        <ListRowLink icon={IconCrear} title="Crear un reto" subtitle="Tú pones la meta y compartes el código" onClick={() => setVista('crear')} />
+                        <div className="h-px bg-k-sep" />
+                        <ListRowLink icon={IconUnirse} title="Unirme con un código" subtitle="Seis caracteres que te pasa tu familia" onClick={() => setVista('unirse')} />
                     </div>
                 </div>
             )}
-            {vista === 'crear'   && <CrearReto  onBack={() => setVista('menu')} />}
-            {vista === 'unirse'  && <UnirseReto onBack={() => setVista('menu')} />}
+            {vista === 'crear'  && <div className="mx-auto flex w-full justify-center"><CrearReto  onBack={() => setVista('menu')} /></div>}
+            {vista === 'unirse' && <div className="mx-auto flex w-full justify-center"><UnirseReto onBack={() => setVista('menu')} /></div>}
         </div>
     )
 }
