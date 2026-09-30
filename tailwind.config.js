@@ -8,7 +8,7 @@ export default {
         sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'system-ui', '"Helvetica Neue"', 'Arial', 'sans-serif'],
       },
       colors: {
-        // shadcn/ui semantic tokens, mapped onto the KmReto "Nativa" palette
+        // shadcn/ui semantic tokens, mapped onto the Senda "Nativa" palette
         border: 'var(--k-sep)',
         input: 'var(--k-sep)',
         ring: 'var(--k-accent)',

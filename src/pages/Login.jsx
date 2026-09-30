@@ -35,8 +35,8 @@ export default function Login() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-k-accent">
             <IconTrail className="h-[26px] w-[26px] text-white" strokeWidth={1.8} />
           </div>
-          <h1 className="mt-1.5 text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] text-k-text">KmReto</h1>
-          <p className="text-[15px] leading-relaxed text-k-text2">Los kilómetros de toda la familia, en un solo sitio.</p>
+          <h1 className="mt-1.5 text-[30px] font-semibold leading-[1.1] tracking-[-0.03em] text-k-text">Senda</h1>
+          <p className="text-[15px] leading-relaxed text-k-text2">Suma y sigue. Los kilómetros de tu grupo, en un solo sitio.</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-2.5">

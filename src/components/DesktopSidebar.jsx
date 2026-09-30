@@ -25,7 +25,7 @@ export default function DesktopSidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-k-accent">
           <IconHome className="h-[18px] w-[18px] text-white" strokeWidth={1.9} />
         </div>
-        <span className="text-[15px] font-semibold text-k-text">KmReto</span>
+        <span className="text-[15px] font-semibold text-k-text">Senda</span>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
