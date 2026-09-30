@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 import { supabase } from '../SupabaseClient'
 import NavBar from '../components/NavBar'
@@ -13,9 +13,12 @@ const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'o
 export default function Historial() {
   const navigate = useNavigate()
   const { userId } = useParams()
+  const [searchParams] = useSearchParams()
+  const grupoId = searchParams.get('grupo')
   const { refreshKey } = useAppUI()
   const [myUserId, setMyUserId] = useState(null)
   const [perfil, setPerfil] = useState(null)
+  const [grupo, setGrupo] = useState(null)
   const [actividades, setActividades] = useState([])
   const [filtro, setFiltro] = useState('Todos')
   const [totalKm, setTotalKm] = useState(0)
@@ -23,7 +26,7 @@ export default function Historial() {
 
   useEffect(() => {
     loadData()
-  }, [userId, refreshKey])
+  }, [userId, grupoId, refreshKey])
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -31,21 +34,20 @@ export default function Historial() {
 
     const targetId = userId || user.id
 
-    const [{ data: prof }, { data: miembro }] = await Promise.all([
+    // Con ?grupo= (desde la clasificación) solo las que cuentan en ese grupo;
+    // sin él, todas las actividades de la persona.
+    const consulta = grupoId
+      ? supabase.from('actividades_reto').select('*').eq('reto_id', grupoId)
+      : supabase.from('actividades').select('*')
+
+    const [{ data: prof }, { data: acts }, { data: retoData }] = await Promise.all([
       supabase.from('profiles').select().eq('id', targetId).single(),
-      supabase.from('reto_miembros').select(`reto_id`).eq('user_id', user.id).limit(1).single(),
+      consulta.eq('user_id', targetId).order('fecha', { ascending: false }),
+      grupoId ? supabase.from('retos').select('nombre').eq('id', grupoId).maybeSingle() : Promise.resolve({ data: null }),
     ])
 
     setPerfil(prof)
-    if (!miembro) { setLoading(false); return }
-
-    const { data: acts } = await supabase
-      .from('actividades')
-      .select('*')
-      .eq('user_id', targetId)
-      .eq('reto_id', miembro.reto_id)
-      .order('fecha', { ascending: false })
-
+    setGrupo(retoData)
     setActividades(acts || [])
     setTotalKm(acts?.reduce((sum, a) => sum + Number(a.distancia_km), 0) || 0)
     setLoading(false)
@@ -92,7 +94,7 @@ export default function Historial() {
             </button>
           )}
           <div className="text-[13px] font-semibold text-k-text2">
-            {actividades.length} actividades · {totalKm.toFixed(1)} km
+            {actividades.length} actividades · {totalKm.toFixed(1)} km{grupo && ` en ${grupo.nombre}`}
           </div>
           <div className="text-[32px] font-bold leading-[1.1] tracking-[-0.02em] text-k-text">
             {esMiPerfil ? 'Historial' : perfil?.nombre}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '@/SupabaseClient'
 import { useAppUI } from '@/context/AppUIContext'
@@ -9,6 +9,7 @@ import { DEPORTES_LIST } from '@/utils'
 import { DEPORTE_ICONOS } from '@/components/icons'
 import { Camera, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { cuentaEnGrupo } from '@/lib/grupos'
 
 const ATAJOS = ['5', '10', '21,1', '42,2']
 
@@ -29,9 +30,25 @@ export default function NuevaActividadSheet() {
   const [foto, setFoto] = useState(null)
   const [fotoPreview, setFotoPreview] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [misGrupos, setMisGrupos] = useState(null)
 
   const km = parseFloat(String(dist).replace(',', '.'))
   const distOk = km > 0
+
+  // Mis grupos y sus reglas, para avisar de en cuáles va a contar.
+  useEffect(() => {
+    if (!sheetOpen) return
+    let cancelado = false
+    async function cargar() {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('reto_miembros').select('unido_el, retos (id, nombre, fecha_inicio, fecha_fin, deportes)').eq('user_id', user.id)
+      if (!cancelado) setMisGrupos((data || []).filter(m => m.retos))
+    }
+    cargar()
+    return () => { cancelado = true }
+  }, [sheetOpen])
+
+  const cuentaEn = (misGrupos || []).filter(m => cuentaEnGrupo({ fecha, deporte }, m.retos, m.unido_el)).map(m => m.retos.nombre)
 
   function reset() {
     setDeporte('Correr'); setDist(''); setFecha(hoyISO()); setNota(''); setFoto(null); setFotoPreview(null)
@@ -55,8 +72,6 @@ export default function NuevaActividadSheet() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: miembro } = await supabase
-      .from('reto_miembros').select('reto_id').eq('user_id', user.id).limit(1).single()
 
     let foto_url = null
     if (foto) {
@@ -70,7 +85,6 @@ export default function NuevaActividadSheet() {
 
     const { error } = await supabase.from('actividades').insert({
       user_id: user.id,
-      reto_id: miembro?.reto_id,
       deporte,
       distancia_km: km,
       fecha,
@@ -194,6 +208,15 @@ export default function NuevaActividadSheet() {
           <Button type="submit" size="lg" disabled={!distOk || loading} variant={distOk ? 'default' : 'secondary'} className="justify-start text-left disabled:opacity-100">
             {loading ? 'Guardando…' : distOk ? `Guardar ${dist} km de ${deporte.toLowerCase()}` : 'Guardar'}
           </Button>
+          {misGrupos && (
+            <p className="-mt-3 text-[13px] leading-snug text-k-text2">
+              {misGrupos.length === 0
+                ? 'Cuenta en tu total personal. Aún no estás en ningún grupo.'
+                : cuentaEn.length === 0
+                  ? 'Cuenta en tu total personal, pero en ninguno de tus grupos por su deporte o su fecha.'
+                  : <>Cuenta en tu total y en <span className="font-medium text-k-text">{cuentaEn.join(', ')}</span>.</>}
+            </p>
+          )}
         </form>
       </SheetContent>
     </Sheet>

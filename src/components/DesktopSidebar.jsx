@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useAppUI } from '@/context/AppUIContext'
-import { IconHome, IconRanking, IconHistorial, IconPerfil } from '@/components/icons'
+import { IconHome, IconGrupos, IconHistorial, IconPerfil } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { path: '/',          icon: IconHome,      label: 'Resumen'   },
-  { path: '/ranking',   icon: IconRanking,   label: 'Ranking'   },
+  { path: '/',          icon: IconHome,      label: 'Inicio'    },
+  { path: '/grupos',    icon: IconGrupos,    label: 'Grupos'    },
   { path: '/historial', icon: IconHistorial, label: 'Historial' },
   { path: '/perfil',    icon: IconPerfil,    label: 'Perfil'    },
 ]
@@ -31,7 +31,7 @@ export default function DesktopSidebar() {
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
         {tabs.map(tab => {
           const Icon = tab.icon
-          const active = location.pathname === tab.path
+          const active = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path)
           return (
             <button
               key={tab.path}

@@ -1,4 +1,4 @@
-// Anillo de progreso circular de "Tu progreso" en Resumen. Radio y grosor
+// Anillo de progreso circular de Inicio y de cada grupo. Radio y grosor
 // tomados del boceto (r=52, stroke=13, circunferencia 326.7).
 export function RingProgress({ pct, size = 112, label = 'de tu meta' }) {
   const dash = `${(pct / 100) * 326.7} 326.7`

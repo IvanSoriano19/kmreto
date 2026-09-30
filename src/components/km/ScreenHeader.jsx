@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 // Cabecera de pantalla: kicker pequeño + título grande de 32px. Aparece en
-// Resumen, Ranking, Historial y Perfil.
+// Inicio, Grupos, cada grupo, Historial y Perfil.
 export function ScreenHeader({ kicker, title, action, className }) {
   return (
     <div className={cn('flex items-start justify-between gap-3', className)}>

@@ -1,12 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useAppUI } from '@/context/AppUIContext'
-import { IconHome, IconRanking, IconHistorial, IconPerfil } from '@/components/icons'
+import { IconHome, IconGrupos, IconHistorial, IconPerfil } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { path: '/',          icon: IconHome,      label: 'Resumen'   },
-  { path: '/ranking',   icon: IconRanking,   label: 'Ranking'   },
+  { path: '/',          icon: IconHome,      label: 'Inicio'    },
+  { path: '/grupos',    icon: IconGrupos,    label: 'Grupos'    },
   null, // hueco del botón central
   { path: '/historial', icon: IconHistorial, label: 'Historial' },
   { path: '/perfil',    icon: IconPerfil,    label: 'Perfil'    },
@@ -38,7 +38,7 @@ export default function NavBar() {
           )
         }
         const Icon = tab.icon
-        const active = location.pathname === tab.path
+        const active = tab.path === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.path)
         return (
           <button
             key={tab.path}

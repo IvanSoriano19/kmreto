@@ -22,16 +22,12 @@ export default function Register() {
     setLoading(true)
     setError('')
 
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // El perfil lo crea un trigger de la base de datos con este nombre.
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { nombre: nombre.trim() } } })
     if (error) { setError(error.message); setLoading(false); return }
 
-    await supabase.from('profiles').insert({
-      id: data.user.id,
-      nombre: nombre.trim(),
-    })
-
     setLoading(false)
-    navigate('/onboarding')
+    navigate('/grupos/nuevo')
   }
 
   return (

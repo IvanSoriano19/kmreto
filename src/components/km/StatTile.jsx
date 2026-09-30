@@ -1,4 +1,4 @@
-// Trío de estadísticas pequeñas (Ranking, Historial, Perfil): valor grande +
+// Trío de estadísticas pequeñas (Perfil): valor grande +
 // etiqueta, en tres tarjetas iguales con un filete superior.
 export function StatTile({ value, label }) {
   return (

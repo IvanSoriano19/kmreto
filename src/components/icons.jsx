@@ -54,6 +54,16 @@ export function IconPerfil(props) {
   )
 }
 
+export function IconGrupos(props) {
+  return (
+    <Svg strokeWidth={1.7} {...props}>
+      <circle cx="9" cy="8.5" r="3.2" />
+      <path d="M3 19.5c1.1-3 3.3-4.5 6-4.5s4.9 1.5 6 4.5" />
+      <path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.4 15.3c1.6.6 2.8 2 3.6 4.2" />
+    </Svg>
+  )
+}
+
 export function IconTrail(props) {
   return (
     <Svg strokeWidth={1.6} {...props}>

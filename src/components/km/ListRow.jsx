@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Fila de 52px con separador superior — usada en Perfil (ajustes) y en las
-// pantallas de alta (Onboarding). El separador se omite en la primera fila
+// pantallas de alta (Nuevo grupo). El separador se omite en la primera fila
 // de cada tarjeta pasando `first`.
 export function ListRow({ className, first = false, onClick, children, ...props }) {
   return (
